@@ -1,0 +1,13 @@
+[project]
+name = "prd-data"
+version = "0.1.0"
+description = "Package containing source data for the Policy Rules Database (PRD)."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.urls]
+About = "https://www.atlantafed.org/economic-mobility-and-resilience/advancing-careers-for-low-income-families/policy-rules-database"
+Repository = "https://github.com/apsocarras/prd-data.git"
+Fork = "https://github.com/jdebacker/policy-rules-database"
+Calculator Repo = "https://github.com/apsocarras/prd-calculator.git"
