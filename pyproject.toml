@@ -10,4 +10,11 @@ dependencies = []
 About = "https://www.atlantafed.org/economic-mobility-and-resilience/advancing-careers-for-low-income-families/policy-rules-database"
 Repository = "https://github.com/apsocarras/prd-data.git"
 Fork = "https://github.com/jdebacker/policy-rules-database"
-Calculator Repo = "https://github.com/apsocarras/prd-calculator.git"
+'Calculator Repo' = "https://github.com/apsocarras/prd-calculator.git"
+
+[tool.uv]
+dev-dependencies = [
+    "ipykernel>=6.29.5",
+    "pytest>=8.3.4",
+    "ruff>=0.8.3",
+]
