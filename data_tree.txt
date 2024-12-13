@@ -1,0 +1,65 @@
+data/parquet/
+├── benefits
+│   ├── childcare
+│   │   ├── ccdf_AK.parquet
+│   │   ├── ccdf_AL.parquet
+│   │   ├── ... # All states are here.
+│   │   └── ccdf_WY.parquet
+│   ├── food
+│   │   ├── schoolmeal.parquet
+│   │   ├── snap.parquet
+│   │   ├── tanf.parquet
+│   │   └── wic.parquet
+│   ├── healthcare
+│   │   ├── aca.parquet
+│   │   ├── medicaid.parquet
+│   │   ├── medicareMaritalstat.parquet
+│   │   └── medicareStateDate.parquet
+│   ├── housing
+│   │   ├── liheap.parquet
+│   │   └── section8.parquet
+│   ├── social_security
+│   │   ├── ssdi.parquet
+│   │   ├── ssi.parquet
+│   │   └── ssp.parquet
+│   └── tax_credits
+│       ├── fedcdctc.parquet
+│       ├── fedctc.parquet
+│       ├── fedeitc.parquet
+│       ├── statecdctc.parquet
+│       ├── statectc.parquet
+│       └── stateeitc.parquet
+├── expenses
+│   ├── childcare_ALICE.parquet
+│   ├── employerHealthcare.parquet
+│   ├── food_USDA.parquet
+│   ├── food_WIC.parquet
+│   ├── food_schoolMeals.parquet
+│   ├── healthcare_ALICE.parquet
+│   ├── healthcare_Medicaid.parquet
+│   ├── healthcare_healthexchange.parquet
+│   ├── housing.parquet
+│   ├── providercost_NV.parquet
+│   ├── providercost_VT.parquet
+│   ├── tech_ALICE.parquet
+│   └── transportation_ALICE.parquet
+├── geog
+│   ├── TowntoWorkforceDevAreaMap.parquet
+│   ├── countypop.parquet
+│   ├── msamap.parquet
+│   └── statemap.parquet
+├── jobs
+│   ├── eduattainment.parquet
+│   ├── fpl.parquet
+│   ├── minWage.parquet
+│   ├── missingEstimates.parquet
+│   ├── smi.parquet
+│   └── wages.parquet
+├── parameter_defaults
+│   └── parameter_defaults.parquet
+└── taxes
+    ├── fedinctax.parquet
+    ├── ficatax.parquet
+    ├── localinctax.parquet
+    ├── salestax.parquet
+    └── stateinctax.parquet
