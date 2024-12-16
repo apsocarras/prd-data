@@ -4,7 +4,9 @@ version = "0.1.0"
 description = "Package containing source data for the Policy Rules Database (PRD)."
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+    "setuptools>=75.6.0",
+]
 
 [project.urls]
 About = "https://www.atlantafed.org/economic-mobility-and-resilience/advancing-careers-for-low-income-families/policy-rules-database"
