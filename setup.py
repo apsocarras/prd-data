@@ -18,8 +18,10 @@ class my_build_py(build_py):
             error_msg = f"Missing '{zip_path}. Ensure package was built correctly."
             raise FileNotFoundError(error_msg)
 
-        extract_to = src_dir
-        # os.makedirs(extract_to, exist_ok=True)
+        build_dir = os.path.join(self.build_lib, PACKAGE_NAME)
+        # extract_to = src_dir
+        extract_to = build_dir
+        os.makedirs(extract_to, exist_ok=True)
 
         with zipfile.ZipFile(zip_path, "r") as zip_ref:
             zip_ref.extractall(extract_to)
@@ -35,7 +37,7 @@ setup(
     cmdclass={"build_py": my_build_py},
     include_package_data=True,
     package_data={
-        "prd_data": [
+        PACKAGE_NAME: [
             "*.zip",
         ]
     },
