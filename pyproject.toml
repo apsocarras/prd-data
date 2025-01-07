@@ -1,5 +1,5 @@
 [project]
-name = "prd-data"
+name = "prd_data"
 version = "0.1.0"
 description = "Package containing source data for the Policy Rules Database (PRD)."
 readme = "README.md"
