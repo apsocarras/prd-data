@@ -20,13 +20,9 @@ prd.print_file_tree() # Show file tree of available files
 prd.get_file_tree_dict() # Get JSON/dict representation of file tree
 >>> {file_tree_dict}
 
-# Utilities to list (absolute, flattened) paths to available files for loading by category
-list_expenses_files()
-list_jobs_files()
-list_geog_files()
-list_taxes_files()
-list_parameter_defaults_files()
-list_benefits_files()
+# List (absolute, flattened) paths to available files for loading by category
+prd.list_files("expenses") # category: Literal["expenses", "jobs", "geog", "taxes", "parameter_defaults", "benefits"]
+>>> {expense_files}
 ```
 
 #### Load Data:
@@ -46,8 +42,8 @@ import os
 from collections import defaultdict
 from functools import partial
 from io import StringIO
-from pathlib import PosixPath
-from typing import Callable, Literal, Optional
+from pathlib import Path, PosixPath
+from typing import Callable, Literal, Optional, TypeAlias, TypeVar, Union, overload
 from warnings import warn
 
 import data as _data_resources
@@ -55,10 +51,87 @@ import data as _data_resources
 _DATA_DIR = importlib.resources.files(_data_resources)
 _PARQUET_DIR = _DATA_DIR.joinpath("parquet")
 
+PathLevel: TypeAlias = Literal["abs", "rel", "base"]
+PathOrStr = TypeVar("PathOrStr", str, Path)
 
-def get_file_directory() -> PosixPath:
-    """Returns directory containing files from package resources"""
-    return _PARQUET_DIR
+
+def _set_path_level(abs_path: PathOrStr, path_level: PathLevel) -> PathOrStr:
+    """
+    Processes a given path to return an absolute path, relative path, or base name.
+
+    ```python
+    y = '/Users/alex/portfolio/prd-data/src/prd_data/data/parquet'
+    x = PosixPath(y)
+
+    for v in (y,x):
+        print(v.__repr__())
+        for path_level in ('abs','rel','base'):
+            print(path_level, _set_path_level(v,path_level).__repr__())
+
+    >>> '/Users/alex/portfolio/prd-data/src/prd_data/data/parquet'
+    >>>    abs '/Users/alex/portfolio/prd-data/src/prd_data/data/parquet'
+    >>>    rel 'data/parquet'
+    >>>    base 'parquet'
+    >>> PosixPath('/Users/alex/portfolio/prd-data/src/prd_data/data/parquet')
+    >>>     abs PosixPath('/Users/alex/portfolio/prd-data/src/prd_data/data/parquet')
+    >>>     rel PosixPath('data/parquet')
+    >>>     base PosixPath('parquet')
+    ```
+    """
+    abs_path_str = str(abs_path) if isinstance(abs_path, Path) else abs_path
+
+    match path_level:
+        case "abs":
+            return abs_path  # Return as-is
+        case "rel":
+            rel_path = os.path.relpath(abs_path_str)
+            return rel_path if isinstance(abs_path, str) else Path(rel_path)
+        case "base":
+            base_name = os.path.basename(abs_path_str)
+            return base_name if isinstance(abs_path, str) else Path(base_name)
+        case _:
+            raise ValueError(
+                f'Invalid path_level "{path_level}". Expected one of: "abs", "rel", "base".'
+            )
+
+
+# @overload
+# def get_file_directory(as_str: bool = True) -> str: ...
+# @overload
+# def get_file_directory(as_str: bool = False) -> PosixPath: ...
+def get_file_directory(
+    as_str: bool = True,
+    path_level: PathLevel = "abs",
+) -> PathOrStr:
+    """
+    Returns directory containing files from package resources.
+
+    ```python
+    for as_str in (True, False):
+        for path_level in ("abs", "rel", "base"):
+            x = get_file_directory(as_str, path_level)
+            print(
+                x.__repr__(),
+                (
+                    as_str,
+                    path_level,
+                ),
+            )
+    >>> '/Users/alex/portfolio/prd-data/src/prd_data/data/parquet' (True, 'abs')
+    >>> 'data/parquet' (True, 'rel')
+    >>> 'parquet' (True, 'base')
+    >>> PosixPath('/Users/alex/portfolio/prd-data/src/prd_data/data/parquet') (False, 'abs')
+    >>> PosixPath('data/parquet') (False, 'rel')
+    >>> PosixPath('parquet') (False, 'base')
+    ```
+    """
+    data_dir = importlib.resources.files(_data_resources)
+    parquet_dir = data_dir.joinpath("parquet")
+    formatted_path = _set_path_level(parquet_dir, path_level=path_level)
+    if as_str:
+        return str(formatted_path)
+    else:
+        return formatted_path
 
 
 def print_file_tree(
@@ -101,7 +174,7 @@ def get_file_tree_dict(
     startpath: str = str(get_file_directory()),
     file_key: str = "files",
     include_start_path: bool = True,
-    start_key: Literal["base", "abs", "rel"] = "abs",
+    start_key: PathLevel = "abs",
 ) -> dict:
     """
     Recursively generate directory tree as dict.
@@ -135,18 +208,7 @@ def get_file_tree_dict(
     str_path = str(startpath)
 
     if include_start_path:
-        match start_key:
-            case "abs":
-                _start_key = os.path.abspath(str_path)
-            case "rel":
-                _start_key = os.path.relpath(str_path)
-            case "base":
-                _start_key = os.path.basename(str_path)
-            case _:
-                return ValueError(
-                    f"`start_key` must be one of 'abs', 'rel', 'base' (given: {start_key})"
-                )
-
+        _start_key = _set_path_level(str_path, start_key)
         return {_start_key: build_tree(str_path)}
 
     return build_tree(str_path)
@@ -164,54 +226,47 @@ def __format_signature(func: Callable, include_signature: bool = False) -> str:
 __FILE_TREE_DICT = get_file_tree_dict(include_start_path=True, start_key="abs")
 
 
-def _list_files(
-    key_name: str,
-    file_tree_dict: Optional[str] = None,
-    abs_paths: bool = True,
+def list_files(
+    category: Literal[
+        "expenses", "jobs", "geog", "taxes", "parameter_defaults", "benefits"
+    ],
+    file_tree_dict: Optional[str] = __FILE_TREE_DICT,
+    path_type: PathLevel = "abs",
     file_key: str = "files",
 ) -> list[str]:
     """list files flat from tree dict based on file category"""
     file_tree_dict = file_tree_dict or get_file_tree_dict(
         include_start_path=True, start_key="abs"
     )
-    abs_path_root = list(file_tree_dict.keys())[0]
-    base_name_root = os.path.basename(abs_path_root)
+    root_key_input = list(file_tree_dict.keys())[0]
+    root_key_output = _set_path_level(root_key_input, path_type)
 
-    root_key = abs_path_root if abs_paths else base_name_root
-
-    # Ugly hard code
-    if key_name == "benefits":
+    # Ugly hard code, sue me
+    if category == "benefits":
         [
-            os.path.join(root_key, key_name, subdir_name, f)
-            for subdir_name in file_tree_dict[root_key][key_name]
-            for f in file_tree_dict[root_key][key_name][subdir_name][file_key]
+            os.path.join(root_key_output, category, subdir_name, f)
+            for subdir_name in file_tree_dict[root_key_input][category]
+            for f in file_tree_dict[root_key_input][category][subdir_name][file_key]
         ]
     else:
         return [
-            os.path.join(root_key, key_name, f)
-            for f in file_tree_dict[root_key][key_name][file_key]
+            os.path.join(root_key_output, category, f)
+            for f in file_tree_dict[root_key_input][category][file_key]
         ]
 
-
-list_expenses_files = partial(_list_files, "expenses", __FILE_TREE_DICT)
-list_jobs_files = partial(_list_files, "jobs", __FILE_TREE_DICT)
-list_geog_files = partial(_list_files, "geog", __FILE_TREE_DICT)
-list_taxes_files = partial(_list_files, "taxes", __FILE_TREE_DICT)
-list_parameter_defaults_files = partial(
-    _list_files, "parameter_defaults", __FILE_TREE_DICT
-)
-list_benefits_files = partial(_list_files, "benefits", __FILE_TREE_DICT)
 
 # For module doc string
 _unzipped_parquet_destination = get_file_directory()
 _file_tree = print_file_tree(output_as_string=True)[:400] + "\n\n\t..."
 _file_tree_dict = get_file_tree_dict(start_key="rel")
 _file_tree_dict_str = json.dumps(_file_tree_dict, indent=4)[:300] + "\n\n\t..."
-
+_expense_files = f"[{', '.join(list_files('expenses', path_type='base')[:2])}..."
+_expense_files
 __doc__ = __doc__.format(
     unzipped_parquet_destination=_unzipped_parquet_destination,
     file_tree=_file_tree,
     file_tree_dict=_file_tree_dict_str,
+    expense_files=_expense_files,
 )
 
 if __name__ == "__main__":
