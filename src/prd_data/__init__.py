@@ -1,32 +1,31 @@
 import inspect
-import json
 import os
 from collections import defaultdict
 from importlib import resources as imp_resources
 from pathlib import PosixPath
-from typing import Any, Callable, Literal, Optional, Union
+from typing import Callable, Literal, Optional
 from warnings import warn
 
-from prd_data import data
+import data as _data_resources
 
-__DATA_DIR = imp_resources.files(data)
-__PARQUET_DIR = __DATA_DIR.joinpath("parquet")
-__PARQUET_DIR
+_DATA_DIR = imp_resources.files(_data_resources)
+_PARQUET_DIR = _DATA_DIR.joinpath("parquet")
 
 
 def get_file_directory() -> PosixPath:
     """Returns directory containing files from package resources"""
-    return __PARQUET_DIR
+    return _PARQUET_DIR
 
 
-def print_file_tree(startpath: str = str(get_file_directory())):
+def print_file_tree(startpath: Optional[str] = None):
+    startpath = startpath or get_file_directory()
     str_path = str(startpath)
     for root, dirs, files in os.walk(str_path):
         level = root.replace(str_path, "").count(os.sep)
         indent = " " * 4 * (level)
         print(f"{indent}{os.path.basename(root)}/")
         subindent = " " * 4 * (level + 1)
-        for f in files:
+        for f in sorted(files):
             print(f"{subindent}{f}")
 
 
@@ -99,6 +98,5 @@ if __name__ == "__main__":
     print("Show File Tree: " + __format_signature(print_file_tree))
     print("Return as JSON Structure: " + __format_signature(get_file_tree_dict))
     print("\n")
-    print("Showing File Tree: ")
-    print("\n")
+    print("Available Files: ")
     print_file_tree()
