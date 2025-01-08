@@ -19,8 +19,10 @@ class my_build_py(build_py):
             raise FileNotFoundError(error_msg)
 
         build_dir = os.path.join(self.build_lib, PACKAGE_NAME)
-        # extract_to = src_dir
-        extract_to = build_dir
+        extract_to = src_dir
+        # extract_to = build_dir
+        # ^^ this isn't correct. everything inside src/prd_data/ in this repository gets installed to site-packages in the end user's local installation.
+
         os.makedirs(extract_to, exist_ok=True)
 
         with zipfile.ZipFile(zip_path, "r") as zip_ref:
