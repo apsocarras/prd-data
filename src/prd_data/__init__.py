@@ -43,7 +43,16 @@ from collections import defaultdict
 from functools import partial
 from io import StringIO
 from pathlib import Path, PosixPath
-from typing import Callable, Literal, Optional, TypeAlias, TypeVar, Union, overload
+from typing import (
+    Callable,
+    Literal,
+    Optional,
+    Sequence,
+    TypeAlias,
+    TypeVar,
+    Union,
+    overload,
+)
 from warnings import warn
 
 import data as _data_resources
@@ -53,6 +62,17 @@ _PARQUET_DIR = _DATA_DIR.joinpath("parquet")
 
 PathLevel: TypeAlias = Literal["abs", "rel", "base"]
 PathOrStr = TypeVar("PathOrStr", str, Path)
+FileCategory: TypeAlias = Literal[
+    "expenses", "jobs", "geog", "taxes", "parameter_defaults", "benefits"
+]
+BenefitsSubCategory: TypeAlias = Literal[
+    "healthcare",
+    "housing",
+    "tax_credits",
+    "social_security",
+    "childcare",
+    "food",
+]
 
 
 def _set_path_level(abs_path: PathOrStr, path_level: PathLevel) -> PathOrStr:
@@ -227,13 +247,12 @@ __FILE_TREE_DICT = get_file_tree_dict(include_start_path=True, start_key="abs")
 
 
 def list_files(
-    category: Literal[
-        "expenses", "jobs", "geog", "taxes", "parameter_defaults", "benefits"
-    ],
+    category: FileCategory,
     file_tree_dict: Optional[str] = __FILE_TREE_DICT,
     path_type: PathLevel = "abs",
     file_key: str = "files",
-) -> list[str]:
+    sub_category: Optional[Sequence[BenefitsSubCategory]] = None,
+) -> list[Union[str, dict]]:
     """list files flat from tree dict based on file category"""
 
     _cat = category.lower()
@@ -246,9 +265,13 @@ def list_files(
 
     # Ugly hard code, sue me
     if _cat == "benefits":
+        sub_category = sub_category or file_tree_dict[root_key_input][_cat]
         file_list = [
-            os.path.join(root_key_output, _cat, subdir_name, f)
-            for subdir_name in file_tree_dict[root_key_input][_cat]
+            {
+                "category": sub_category,
+                file_key: os.path.join(root_key_output, _cat, subdir_name, f),
+            }
+            for subdir_name in sub_category
             for f in file_tree_dict[root_key_input][_cat][subdir_name][file_key]
         ]
     else:
