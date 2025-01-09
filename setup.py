@@ -8,7 +8,13 @@ PACKAGE_NAME = "prd_data"
 
 
 class my_build_py(build_py):
-    """Custom build step to unzip packaged parquets."""
+    """
+    Custom build step to unzip packaged parquets.
+
+    TODO: Include build step to dump the directory tree of parquet files to data_tree.json
+    TODO: Include build step to convert data_tree.json to data_tree.py
+    - I've currently manually copy-pasted the directory structure over to data_tree.py
+    """
 
     def run(self) -> None:
         src_dir = os.path.abspath(os.path.join("src", PACKAGE_NAME))
