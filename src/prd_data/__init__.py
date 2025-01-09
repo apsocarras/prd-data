@@ -45,34 +45,17 @@ from io import StringIO
 from pathlib import Path, PosixPath
 from typing import (
     Callable,
-    Literal,
     Optional,
     Sequence,
-    TypeAlias,
-    TypeVar,
     Union,
-    overload,
 )
 from warnings import warn
 
-import data as _data_resources
+import prd_data.data as _data_resources
+from prd_data._types import BenefitsSubCategory, FileCategory, PathLevel, PathOrStr
 
 _DATA_DIR = importlib.resources.files(_data_resources)
 _PARQUET_DIR = _DATA_DIR.joinpath("parquet")
-
-PathLevel: TypeAlias = Literal["abs", "rel", "base"]
-PathOrStr = TypeVar("PathOrStr", str, Path)
-FileCategory: TypeAlias = Literal[
-    "expenses", "jobs", "geog", "taxes", "parameter_defaults", "benefits"
-]
-BenefitsSubCategory: TypeAlias = Literal[
-    "healthcare",
-    "housing",
-    "tax_credits",
-    "social_security",
-    "childcare",
-    "food",
-]
 
 
 def _set_path_level(abs_path: PathOrStr, path_level: PathLevel) -> PathOrStr:
