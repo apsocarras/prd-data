@@ -1,21 +1,20 @@
 """
-## prd_data
+`{module_name}`
 
-A package for distributing the datasets in the Policy Rules Database (PRD) in an accessible format for programmers and data scientists.
-Original data comes from the AFRB's [Policy Rules Database GitHub Repository](https://github.com/Research-Division/policy-rules-database).
-
-See `loaders.py` for convenient data loaders to work with the datasets in the package.
+Utilities for listing/organizing files in the PRD.
 
 #### View Available Files:
 
 ```python
-import prd_data as prd
+from prd_data import file_utils as fu
 
-prd.get_data_dir() # Show destination for extracted files
+fu.get_data_dir() # Show destination for extracted files
 >>> {unzipped_parquet_destination}
 
+import prd_data as prd # file_utils functions also accessible here
+
 prd.print_file_tree() # Show file tree of available files
->>> {file_tree}
+>>> \n{file_tree}
 
 prd.get_file_tree_dict() # Get JSON/dict representation of file tree
 >>> {file_tree_dict}
@@ -23,32 +22,19 @@ prd.get_file_tree_dict() # Get JSON/dict representation of file tree
 # List (absolute, flattened) paths to available files for loading by category
 prd.list_files("expenses") # category: Literal["expenses", "jobs", "geog", "taxes", "parameter_defaults", "benefits"]
 >>> {expense_files}
-```
-
-#### Load Data:
-
-```python
-from prd_data import loaders
-
-# ...
+prd.list_files("benefits")
+>>> {benefits_files}
 ```
 """
 
 import importlib
 import importlib.resources
-import inspect
 import json
 import os
 from collections import defaultdict
-from functools import partial
 from io import StringIO
-from pathlib import Path, PosixPath
-from typing import (
-    Callable,
-    Optional,
-    Sequence,
-    Union,
-)
+from pathlib import Path
+from typing import Callable, Mapping, Optional, Sequence, Union
 from warnings import warn
 
 import prd_data.data as _data_resources
@@ -58,7 +44,9 @@ from prd_data._types import (
     PathLevel,
     PathOrStr,
     PathSequence,
+    PRD_FileTreeType,
 )
+from prd_data.file_tree import FILE_TREE
 
 
 def _set_path_level(abs_path: PathOrStr, path_level: PathLevel) -> PathOrStr:
@@ -117,7 +105,10 @@ def get_data_dir(
 
 
 def print_file_tree(
-    data_dir: Optional[str] = None, as_str: bool = False
+    data_dir: Optional[PathOrStr] = None,
+    as_str: bool = False,
+    formatter: Optional[Callable[["print_file_tree", tuple, dict], str]] = None,
+    **kwargs,
 ) -> Optional[str]:
     """
     Print or return the file tree structure starting from `data_dir`.
@@ -132,9 +123,8 @@ def print_file_tree(
     data_dir = data_dir or get_data_dir()
     str_path = str(data_dir)
 
-    # Use StringIO to capture output if as_str is True
-    buffer = StringIO() if as_str else None
-    write = buffer.write if buffer else print
+    buffer = StringIO()
+    write = buffer.write
 
     for root, dirs, files in os.walk(str_path):
         level = root.replace(str_path, "").count(os.sep)
@@ -144,15 +134,27 @@ def print_file_tree(
         for f in sorted(files):
             write(f"{subindent}{f}\n")
 
+    result = buffer.getvalue()
+    buffer.close()
+
+    if formatter:
+        return formatter(print_file_tree, (data_dir, as_str), kwargs)
+
     if as_str:
-        result = buffer.getvalue()
-        buffer.close()
         return result
+    else:
+        print(result)
+        return None
 
-    return None
+
+def _tree_trunc(func, args, kwargs, max_length=400):
+    full_output = func(*args, **kwargs)
+    if len(full_output) > max_length:
+        return full_output[:max_length] + "\n\n\t... (truncated)"
+    return full_output
 
 
-def get_file_tree_dict(
+def make_file_tree_dict(
     data_dir: str = str(get_data_dir()),
     file_key: str = "files",
     include_start_path: bool = True,
@@ -160,6 +162,7 @@ def get_file_tree_dict(
 ) -> dict:
     """
     Recursively generate directory tree as dict.
+    During the package build step, this function is use to generate the read-only Mapping file_tree.FILE_TREE
 
     Args:
         data_dir (str): (Absolute) path to a directory tree in your file system.
@@ -196,45 +199,48 @@ def get_file_tree_dict(
     return build_tree(str_path)
 
 
-def __format_signature(func: Callable, include_signature: bool = False) -> str:
-    s = func.__name__
-    if include_signature:
-        s += inspect.signature(func)
-    else:
-        s += "(...)"
-    return s
+def get_file_tree_dict() -> PRD_FileTreeType:
+    """
+    Get a read-only Mapping representation of PRD files contained in the prd_data package.
 
-
-__FILE_TREE_DICT = get_file_tree_dict(include_start_path=True, start_key="abs")
+    Returns FILE_TREE (created during the package build step)
+    """
+    return FILE_TREE
 
 
 def list_files(
     category: FileCategory,
-    file_tree_dict: Optional[str] = __FILE_TREE_DICT,
+    file_tree_dict: Optional[Mapping] = None,
     path_type: PathLevel = "abs",
     file_key: str = "files",
-    sub_category: Optional[Sequence[BenefitsSubCategory]] = None,
+    sub_categories: Optional[Sequence[BenefitsSubCategory]] = None,
 ) -> list[Union[str, dict]]:
     """list files flat from tree dict based on file category"""
+    file_tree_dict = file_tree_dict or get_file_tree_dict()
 
     _cat = category.lower()
 
-    file_tree_dict = file_tree_dict or get_file_tree_dict(
-        include_start_path=True, start_key="abs"
-    )
     root_key_input = list(file_tree_dict.keys())[0]
     root_key_output = _set_path_level(root_key_input, path_type)
-
     # Ugly hard code, sue me
     if _cat == "benefits":
-        sub_category = sub_category or file_tree_dict[root_key_input][_cat]
+        sub_categories = sub_categories or [
+            "healthcare",
+            "housing",
+            "tax_credits",
+            "social_security",
+            "childcare",
+            "food",
+        ]
         file_list = [
             {
-                "category": sub_category,
-                file_key: os.path.join(root_key_output, _cat, subdir_name, f),
+                "category": sub_cat,
+                file_key: [
+                    os.path.join(root_key_output, _cat, sub_cat, f)
+                    for f in file_tree_dict[root_key_input][_cat][sub_cat][file_key]
+                ],
             }
-            for subdir_name in sub_category
-            for f in file_tree_dict[root_key_input][_cat][subdir_name][file_key]
+            for sub_cat in sub_categories
         ]
     else:
         file_list = [
@@ -247,17 +253,29 @@ def list_files(
 
 # For module doc string
 _unzipped_parquet_destination = get_data_dir()
-_file_tree = print_file_tree(as_str=True)[:400] + "\n\n\t..."
-_file_tree_dict = get_file_tree_dict(start_key="rel")
+_file_tree = print_file_tree(
+    as_str=True,
+    formatter=_tree_trunc,
+)
+_file_tree_dict = make_file_tree_dict(start_key="rel")
 _file_tree_dict_str = json.dumps(_file_tree_dict, indent=4)[:300] + "\n\n\t..."
-_expense_files = f"[{', '.join(list_files('expenses', path_type='base')[:2])}..."
-_expense_files
+_expense_files = f"[{', '.join(list_files('expenses', path_type='base')[:1])}..."
+_benefits_files = (
+    json.dumps(list_files("benefits", path_type="base")[:2], indent=2).rstrip("]")
+    + "...\n]"
+)
+_cur_file_name = os.path.basename(__file__)
 __doc__ = __doc__.format(
     unzipped_parquet_destination=_unzipped_parquet_destination,
     file_tree=_file_tree,
     file_tree_dict=_file_tree_dict_str,
     expense_files=_expense_files,
+    benefits_files=_benefits_files,
+    module_name=_cur_file_name,
 )
 
 if __name__ == "__main__":
     print(__doc__)
+
+    for x in ["expenses", "jobs", "geog", "taxes", "parameter_defaults", "benefits"]:
+        list_files(x)

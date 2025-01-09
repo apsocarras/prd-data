@@ -1,5 +1,16 @@
 from pathlib import Path
-from typing import Literal, Protocol, TypeAlias, TypeVar, runtime_checkable
+from types import MappingProxyType
+from typing import (
+    Literal,
+    Mapping,
+    Protocol,
+    Sequence,
+    TypeAlias,
+    TypedDict,
+    TypeVar,
+    Union,
+    runtime_checkable,
+)
 
 PathLevel: TypeAlias = Literal["abs", "rel", "base"]
 PathOrStr = TypeVar("PathOrStr", str, Path)
@@ -14,6 +25,22 @@ BenefitsSubCategory: TypeAlias = Literal[
     "childcare",
     "food",
 ]
+
+
+class FilesDict(TypedDict):
+    files: list[str]
+
+
+class PRD_FileTreeDict(TypedDict):
+    geog: FilesDict
+    expenses: FilesDict
+    parameter_defaults: FilesDict
+    taxes: FilesDict
+    benefits: Mapping[BenefitsSubCategory, FilesDict]
+
+
+PRD_FileTreeType: TypeAlias = MappingProxyType[PRD_FileTreeDict]
+# won't work with static type checker: see https://discuss.python.org/t/introduce-a-typedmapping-analog-to-typeddict-but-frozen/51905/6
 
 
 @runtime_checkable
