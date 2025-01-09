@@ -235,6 +235,9 @@ def list_files(
     file_key: str = "files",
 ) -> list[str]:
     """list files flat from tree dict based on file category"""
+
+    _cat = category.lower()
+
     file_tree_dict = file_tree_dict or get_file_tree_dict(
         include_start_path=True, start_key="abs"
     )
@@ -242,17 +245,19 @@ def list_files(
     root_key_output = _set_path_level(root_key_input, path_type)
 
     # Ugly hard code, sue me
-    if category == "benefits":
-        [
-            os.path.join(root_key_output, category, subdir_name, f)
-            for subdir_name in file_tree_dict[root_key_input][category]
-            for f in file_tree_dict[root_key_input][category][subdir_name][file_key]
+    if _cat == "benefits":
+        file_list = [
+            os.path.join(root_key_output, _cat, subdir_name, f)
+            for subdir_name in file_tree_dict[root_key_input][_cat]
+            for f in file_tree_dict[root_key_input][_cat][subdir_name][file_key]
         ]
     else:
-        return [
-            os.path.join(root_key_output, category, f)
-            for f in file_tree_dict[root_key_input][category][file_key]
+        file_list = [
+            os.path.join(root_key_output, _cat, f)
+            for f in file_tree_dict[root_key_input][_cat][file_key]
         ]
+
+    return file_list
 
 
 # For module doc string
