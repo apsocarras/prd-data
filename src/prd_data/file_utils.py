@@ -1,7 +1,5 @@
 """
-`{module_name}`
-
-Utilities for listing/organizing files in the PRD.
+`{cur_file_name}` - Utilities for listing/organizing files in the PRD.
 
 #### View Available Files:
 
@@ -147,10 +145,10 @@ def print_file_tree(
         return None
 
 
-def _tree_trunc(func, args, kwargs, max_length=400):
+def _tree_trunc(func, args, kwargs, max_length=500):
     full_output = func(*args, **kwargs)
     if len(full_output) > max_length:
-        return full_output[:max_length] + "\n\n\t... (truncated)"
+        return full_output[:max_length] + "\n\t..."
     return full_output
 
 
@@ -262,7 +260,7 @@ _file_tree_dict_str = json.dumps(_file_tree_dict, indent=4)[:300] + "\n\n\t..."
 _expense_files = f"[{', '.join(list_files('expenses', path_type='base')[:1])}..."
 _benefits_files = (
     json.dumps(list_files("benefits", path_type="base")[:2], indent=2).rstrip("]")
-    + "...\n]"
+    + "\t...\n]"
 )
 _cur_file_name = os.path.basename(__file__)
 __doc__ = __doc__.format(
@@ -271,7 +269,7 @@ __doc__ = __doc__.format(
     file_tree_dict=_file_tree_dict_str,
     expense_files=_expense_files,
     benefits_files=_benefits_files,
-    module_name=_cur_file_name,
+    cur_file_name=_cur_file_name,
 )
 
 if __name__ == "__main__":
